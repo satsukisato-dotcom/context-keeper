@@ -428,7 +428,12 @@
     }
 
     function parseBlocks(text) {
-      const sections = ['Purpose（目的）', 'Context（背景）', 'Preferences（前提）', 'Current Topic（現在の作業）'];
+      const sections = [
+  { en: 'Purpose', ja: '目的' },
+  { en: 'Context', ja: '背景' },
+  { en: 'Preferences', ja: '前提' },
+  { en: 'Current Topic', ja: '現在の作業' }
+];
       const blocks = [];
 
       sections.forEach((label, i) => {
