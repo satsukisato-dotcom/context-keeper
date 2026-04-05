@@ -427,13 +427,64 @@
       setLoading(false);
     }
 
-   function parseBlocks(text) {
+  function parseBlocks(text) {
   const sections = [
-    { en: 'Purpose', ja: 'Purpose（目的）' },
-    { en: 'Context', ja: 'Context（背景）' },
-    { en: 'Preferences', ja: 'Preferences（前提）' },
-    { en: 'Current Topic', ja: 'Current Topic（現在の作業）' }
+    { keys: ['Purpose', '目的'], label: 'Purpose（目的）' },
+    { keys: ['Context', '背景'], label: 'Context（背景）' },
+    { keys: ['Preferences', '前提'], label: 'Preferences（前提）' },
+    { keys: ['Current Topic', '現在の作業'], label: 'Current Topic（現在の作業）' }
   ];
+
+  const blocks = [];
+
+  sections.forEach((section, i) => {
+    let startIndex = -1;
+    let usedKey = null;
+
+    for (const key of section.keys) {
+      const tag = `[${key}]`;
+      const idx = text.indexOf(tag);
+      if (idx !== -1) {
+        startIndex = idx;
+        usedKey = key;
+        break;
+      }
+    }
+
+    if (startIndex === -1) return;
+
+    let endIndex = text.length;
+
+    for (let j = i + 1; j < sections.length; j++) {
+      for (const key of sections[j].keys) {
+        const tag = `[${key}]`;
+        const idx = text.indexOf(tag);
+        if (idx !== -1) {
+          endIndex = idx;
+          break;
+        }
+      }
+      if (endIndex !== text.length) break;
+    }
+
+    const content = text
+      .slice(startIndex + usedKey.length + 2, endIndex)
+      .trim();
+
+    if (content) {
+      blocks.push({
+        label: section.label,
+        content
+      });
+    }
+  });
+
+  if (blocks.length === 0) {
+    blocks.push({ label: 'Output', content: text });
+  }
+
+  return blocks;
+}
 
   const blocks = [];
 
