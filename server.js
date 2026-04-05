@@ -82,6 +82,18 @@ app.post('/summarize', async (req, res) => {
   }
 });
 
+// 静的ファイル配信（←これ追加）
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+app.use(express.static(__dirname));
+
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
 // Health check
 app.get('/health', (_req, res) => res.json({ status: 'ok' }));
 
