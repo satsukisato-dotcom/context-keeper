@@ -374,234 +374,193 @@
 
   <div id="toast"></div>
 
-  <script>
-    const inputEl       = document.getElementById('inputText');
-    const outputEl      = document.getElementById('outputArea');
-    const generateBtn   = document.getElementById('generateBtn');
-    const copyBtn       = document.getElementById('copyBtn');
-    const charCount     = document.getElementById('charCount');
-    const outputStatus  = document.getElementById('outputStatus');
-    const btnLabel      = document.getElementById('btnLabel');
+ <script>
+  const inputEl = document.getElementById('inputText');
+  const outputEl = document.getElementById('outputArea');
+  const generateBtn = document.getElementById('generateBtn');
+  const copyBtn = document.getElementById('copyBtn');
+  const charCount = document.getElementById('charCount');
+  const outputStatus = document.getElementById('outputStatus');
+  const btnLabel = document.getElementById('btnLabel');
 
-    // ── Points to your local proxy server, not Anthropic ──
-    const PROXY_URL = '/summarize';
+  const PROXY_URL = '/summarize';
 
-    let generatedText = '';
+  let generatedText = '';
 
-    inputEl.addEventListener('input', () => {
-      const len = inputEl.value.length;
-      charCount.textContent = `${len.toLocaleString()} chars`;
-      generateBtn.disabled = len < 20;
-    });
+  inputEl.addEventListener('input', () => {
+    const len = inputEl.value.length;
+    charCount.textContent = `${len.toLocaleString()} chars`;
+    generateBtn.disabled = len < 20;
+  });
 
-    async function handleGenerate() {
-      const input = inputEl.value.trim();
-      if (!input) return;
+  async function handleGenerate() {
+    const input = inputEl.value.trim();
+    if (!input) return;
 
-      setLoading(true);
+    setLoading(true);
 
-      try {
-        const res = await fetch(PROXY_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ conversation: input })
-        });
+    try {
+      const res = await fetch(PROXY_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conversation: input })
+      });
 
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          throw new Error(err.error || `Server error ${res.status}`);
-        }
-
-        const data = await res.json();
-        const blocks = parseBlocks(data.result);
-        generatedText = blocks.map(b => `[${b.label}]\n${b.content}`).join('\n\n');
-
-        renderOutput(blocks);
-        copyBtn.disabled = false;
-        outputStatus.textContent = 'ready to copy';
-      } catch (err) {
-        outputEl.innerHTML = `<div style="padding:18px; color:var(--danger); font-family:var(--font-mono); font-size:0.8rem;">Error: ${escapeHtml(err.message)}</div>`;
-        outputStatus.textContent = 'error';
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `Server error ${res.status}`);
       }
 
-      setLoading(false);
+      const data = await res.json();
+      const blocks = parseBlocks(data.result);
+      generatedText = blocks.map(b => `[${b.label}]\n${b.content}`).join('\n\n');
+
+      renderOutput(blocks);
+      copyBtn.disabled = false;
+      outputStatus.textContent = 'ready to copy';
+    } catch (err) {
+      outputEl.innerHTML = `<div style="padding:18px; color:var(--danger); font-family:var(--font-mono); font-size:0.8rem;">Error: ${escapeHtml(err.message)}</div>`;
+      outputStatus.textContent = 'error';
     }
+
+    setLoading(false);
+  }
 
   function parseBlocks(text) {
-  const sections = [
-    { keys: ['Purpose', '目的'], label: 'Purpose（目的）' },
-    { keys: ['Context', '背景'], label: 'Context（背景）' },
-    { keys: ['Preferences', '前提'], label: 'Preferences（前提）' },
-    { keys: ['Current Topic', '現在の作業'], label: 'Current Topic（現在の作業）' }
-  ];
+    const sections = [
+      { keys: ['Purpose', '目的'], label: 'Purpose（目的）' },
+      { keys: ['Context', '背景'], label: 'Context（背景）' },
+      { keys: ['Preferences', '前提'], label: 'Preferences（前提）' },
+      { keys: ['Current Topic', '現在の作業'], label: 'Current Topic（現在の作業）' }
+    ];
 
-  const blocks = [];
+    const blocks = [];
 
-  sections.forEach((section, i) => {
-    let startIndex = -1;
-    let usedKey = null;
+    sections.forEach((section, i) => {
+      let startIndex = -1;
+      let usedKey = null;
 
-    for (const key of section.keys) {
-      const tag = `[${key}]`;
-      const idx = text.indexOf(tag);
-      if (idx !== -1) {
-        startIndex = idx;
-        usedKey = key;
-        break;
-      }
-    }
-
-    if (startIndex === -1) return;
-
-    let endIndex = text.length;
-
-    for (let j = i + 1; j < sections.length; j++) {
-      for (const key of sections[j].keys) {
+      for (const key of section.keys) {
         const tag = `[${key}]`;
         const idx = text.indexOf(tag);
         if (idx !== -1) {
-          endIndex = idx;
+          startIndex = idx;
+          usedKey = key;
           break;
         }
       }
-      if (endIndex !== text.length) break;
+
+      if (startIndex === -1) return;
+
+      let endIndex = text.length;
+
+      for (let j = i + 1; j < sections.length; j++) {
+        for (const key of sections[j].keys) {
+          const tag = `[${key}]`;
+          const idx = text.indexOf(tag);
+          if (idx !== -1) {
+            endIndex = idx;
+            break;
+          }
+        }
+        if (endIndex !== text.length) break;
+      }
+
+      const content = text
+        .slice(startIndex + usedKey.length + 2, endIndex)
+        .trim();
+
+      if (content) {
+        blocks.push({
+          label: section.label,
+          content
+        });
+      }
+    });
+
+    if (blocks.length === 0) {
+      blocks.push({ label: 'Output', content: text });
     }
 
-    const content = text
-      .slice(startIndex + usedKey.length + 2, endIndex)
-      .trim();
-
-    if (content) {
-      blocks.push({
-        label: section.label,
-        content
-      });
-    }
-  });
-
-  if (blocks.length === 0) {
-    blocks.push({ label: 'Output', content: text });
+    return blocks;
   }
 
-  return blocks;
-}
-
-  const blocks = [];
-
-  sections.forEach((section, i) => {
-    const startTag = `[${section.en}]`;
-    const nextTag = sections[i + 1] ? `[${sections[i + 1].en}]` : null;
-
-    const start = text.indexOf(startTag);
-    if (start === -1) return;
-
-    const end = nextTag ? text.indexOf(nextTag) : text.length;
-    const content = text.slice(start + startTag.length, end).trim();
-
-    if (content) {
-      blocks.push({
-        label: section.ja,
-        content
-      });
-    }
-  });
-
-  if (blocks.length === 0) {
-    blocks.push({ label: 'Output（出力）', content: text });
+  function renderOutput(blocks) {
+    outputEl.innerHTML = '';
+    blocks.forEach(block => {
+      const div = document.createElement('div');
+      div.className = 'output-block';
+      div.innerHTML = `
+        <div class="output-block-label">${block.label}</div>
+        <div class="output-block-content">${escapeHtml(block.content)}</div>
+      `;
+      outputEl.appendChild(div);
+    });
   }
 
-  return blocks;
-}
-      const blocks = [];
+  function setLoading(on) {
+    generateBtn.disabled = on;
 
-      sections.forEach((label, i) => {
-        const startTag = `[${label}]`;
-        const nextTag  = sections[i + 1] ? `[${sections[i + 1]}]` : null;
-        const start    = text.indexOf(startTag);
-        if (start === -1) return;
-        const end      = nextTag ? text.indexOf(nextTag) : text.length;
-        const content  = text.slice(start + startTag.length, end).trim();
-        if (content) blocks.push({ label, content });
-      });
+    if (on) {
+      const spinner = document.createElement('div');
+      spinner.className = 'spinner';
+      generateBtn.prepend(spinner);
+      btnLabel.textContent = 'Generating…';
 
-      if (blocks.length === 0) blocks.push({ label: 'Output', content: text });
-      return blocks;
-    }
-
-    function renderOutput(blocks) {
-      outputEl.innerHTML = '';
-      blocks.forEach(block => {
-        const div = document.createElement('div');
-        div.className = 'output-block';
-        div.innerHTML = `
-          <div class="output-block-label">${block.label}</div>
-          <div class="output-block-content">${escapeHtml(block.content)}</div>
-        `;
-        outputEl.appendChild(div);
-      });
-    }
-
-    function setLoading(on) {
-      generateBtn.disabled = on;
-      if (on) {
-        const spinner = document.createElement('div');
-        spinner.className = 'spinner';
-        generateBtn.prepend(spinner);
-        btnLabel.textContent = 'Generating…';
-        outputEl.innerHTML = `
-          <div style="padding:18px;">
-            <div class="loading-shimmer" style="width:60%"></div>
-            <div class="loading-shimmer" style="width:80%"></div>
-            <div class="loading-shimmer" style="width:50%"></div>
-            <div class="loading-shimmer" style="width:70%;margin-top:20px"></div>
-            <div class="loading-shimmer" style="width:90%"></div>
-          </div>`;
-        outputStatus.textContent = 'generating…';
-      } else {
-        const sp = generateBtn.querySelector('.spinner');
-        if (sp) sp.remove();
-        btnLabel.textContent = 'Generate Context';
-      }
-    }
-
-    async function handleCopy() {
-      if (!generatedText) return;
-      try {
-        await navigator.clipboard.writeText(generatedText);
-        showToast('✓ Copied to clipboard');
-        outputStatus.textContent = 'copied!';
-        setTimeout(() => { outputStatus.textContent = 'ready to copy'; }, 2000);
-      } catch {
-        showToast('Copy failed — select and copy manually');
-      }
-    }
-
-    function handleClear() {
-      inputEl.value = '';
-      generatedText = '';
-      charCount.textContent = '0 chars';
-      generateBtn.disabled = true;
-      copyBtn.disabled = true;
-      outputStatus.textContent = '—';
-      outputEl.className = 'output-area';
       outputEl.innerHTML = `
-        <div class="placeholder-state">
-          <div class="placeholder-icon">⬡</div>
-          <div class="placeholder-text">Your structured context<br />will appear here</div>
+        <div style="padding:18px;">
+          <div class="loading-shimmer" style="width:60%"></div>
+          <div class="loading-shimmer" style="width:80%"></div>
+          <div class="loading-shimmer" style="width:50%"></div>
+          <div class="loading-shimmer" style="width:70%;margin-top:20px"></div>
+          <div class="loading-shimmer" style="width:90%"></div>
         </div>`;
+      outputStatus.textContent = 'generating…';
+    } else {
+      const sp = generateBtn.querySelector('.spinner');
+      if (sp) sp.remove();
+      btnLabel.textContent = 'Generate Context';
     }
+  }
 
-    function escapeHtml(s) {
-      return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  async function handleCopy() {
+    if (!generatedText) return;
+    try {
+      await navigator.clipboard.writeText(generatedText);
+      showToast('✓ Copied to clipboard');
+      outputStatus.textContent = 'copied!';
+      setTimeout(() => { outputStatus.textContent = 'ready to copy'; }, 2000);
+    } catch {
+      showToast('Copy failed — select and copy manually');
     }
+  }
 
-    function showToast(msg) {
-      const t = document.getElementById('toast');
-      t.textContent = msg;
-      t.classList.add('show');
-      setTimeout(() => t.classList.remove('show'), 2400);
-    }
-  </script>
+  function handleClear() {
+    inputEl.value = '';
+    generatedText = '';
+    charCount.textContent = '0 chars';
+    generateBtn.disabled = true;
+    copyBtn.disabled = true;
+    outputStatus.textContent = '—';
+    outputEl.className = 'output-area';
+    outputEl.innerHTML = `
+      <div class="placeholder-state">
+        <div class="placeholder-icon">⬡</div>
+        <div class="placeholder-text">Your structured context<br />will appear here</div>
+      </div>`;
+  }
+
+  function escapeHtml(s) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2400);
+  }
+</script>
 
 </body>
 </html>
