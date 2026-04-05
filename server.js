@@ -5,13 +5,44 @@ import express from 'express';
 import cors from 'cors';
 import Anthropic from '@anthropic-ai/sdk';
 import 'dotenv/config';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-const app  = express();
+const app = express();
 const PORT = process.env.PORT || 3000;
 
 const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
+
+function getCharacterPrompt(type) {
+  if (type === 'mofu') {
+    return `
+You are "もふもふ", a calm, gentle, and supportive assistant.
+Your tone is soft, reassuring, and organized.
+You help the user feel safe and understood.
+`;
+  }
+
+  if (type === 'doku') {
+    return `
+You are "毒舌", a blunt, sharp, and critical assistant.
+You point out inefficiencies, contradictions, and weak thinking directly.
+You may sound a little harsh, but you must still be useful and accurate.
+Do not become abusive or insulting.
+`;
+  }
+
+  if (type === 'ama') {
+    return `
+You are "甘やかし", a warm, affectionate, and encouraging assistant.
+You praise the user, validate their effort, and respond in a very supportive way.
+You should feel emotionally comforting while still being helpful.
+`;
+  }
+
+  return '';
+}
 
 const SYSTEM_PROMPT = `You are extracting continuation-ready context from a real working conversation.
 
@@ -34,21 +65,20 @@ You MUST write the entire output in the same language as the user's input.
 If the input is Japanese, the entire output MUST be in Japanese.
 If the input is English, the entire output MUST be in English.
 
-Output exactly this format and nothing else:
+If the input is Japanese, use these section headers:
+[目的]
+[背景]
+[前提]
+[現在の作業]
 
+If the input is English, use these section headers:
 [Purpose]
-One sentence. State the concrete outcome the user is trying to achieve.
-
 [Context]
-2–4 sentences. Include the relevant working background, current setup, tools, environment, constraints, decisions already made, or errors already encountered.
-
 [Preferences]
-1–3 sentences. Include explicit preferences and strongly implied working style.
+[Current Topic]
+
 If the input is Japanese and preferences are unclear, write: 明確に指定されていない。
 If the input is English and preferences are unclear, write: Not clearly specified.
-
-[Current Topic]
-1–2 sentences. State what the user was actively working on at the end, and the most immediate next step.
 
 Quality bar:
 - The output should feel useful enough to paste into a new AI thread and continue work immediately.
@@ -59,7 +89,7 @@ app.use(cors({ origin: '*' }));
 app.use(express.json());
 
 app.post('/summarize', async (req, res) => {
-  const { conversation } = req.body;
+  const { conversation, character } = req.body;
 
   if (!conversation || typeof conversation !== 'string' || conversation.trim().length < 20) {
     return res.status(400).json({ error: 'conversation must be a non-empty string (min 20 chars)' });
@@ -67,26 +97,27 @@ app.post('/summarize', async (req, res) => {
 
   try {
     const message = await client.messages.create({
-      model:      'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-20250514',
       max_tokens: 1000,
-      system:     SYSTEM_PROMPT,
-      messages: [{
-        role: 'user',
-        content: `Summarize the following conversation.
+      system: SYSTEM_PROMPT + '\n\n' + getCharacterPrompt(character),
+      messages: [
+        {
+          role: 'user',
+          content: `Summarize the following conversation.
 Write the output in the same language as the input.
 
 ${conversation}`
-      }],
+        }
+      ],
     });
 
     const result = message.content
-      .filter(b => b.type === 'text')
-      .map(b => b.text)
+      .filter(block => block.type === 'text')
+      .map(block => block.text)
       .join('')
       .trim();
 
     res.json({ result });
-
   } catch (err) {
     console.error('Anthropic API error:', err.message);
     res.status(502).json({ error: 'Failed to reach Anthropic API. Check your API key and try again.' });
@@ -94,9 +125,6 @@ ${conversation}`
 });
 
 // 静的ファイル配信
-import path from 'path';
-import { fileURLToPath } from 'url';
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
