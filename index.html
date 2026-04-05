@@ -427,13 +427,40 @@
       setLoading(false);
     }
 
-    function parseBlocks(text) {
-      const sections = [
-  { en: 'Purpose', ja: '目的' },
-  { en: 'Context', ja: '背景' },
-  { en: 'Preferences', ja: '前提' },
-  { en: 'Current Topic', ja: '現在の作業' }
-];
+   function parseBlocks(text) {
+  const sections = [
+    { en: 'Purpose', ja: 'Purpose（目的）' },
+    { en: 'Context', ja: 'Context（背景）' },
+    { en: 'Preferences', ja: 'Preferences（前提）' },
+    { en: 'Current Topic', ja: 'Current Topic（現在の作業）' }
+  ];
+
+  const blocks = [];
+
+  sections.forEach((section, i) => {
+    const startTag = `[${section.en}]`;
+    const nextTag = sections[i + 1] ? `[${sections[i + 1].en}]` : null;
+
+    const start = text.indexOf(startTag);
+    if (start === -1) return;
+
+    const end = nextTag ? text.indexOf(nextTag) : text.length;
+    const content = text.slice(start + startTag.length, end).trim();
+
+    if (content) {
+      blocks.push({
+        label: section.ja,
+        content
+      });
+    }
+  });
+
+  if (blocks.length === 0) {
+    blocks.push({ label: 'Output（出力）', content: text });
+  }
+
+  return blocks;
+}
       const blocks = [];
 
       sections.forEach((label, i) => {
