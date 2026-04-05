@@ -29,7 +29,7 @@ Rules:
 - When the conversation suggests a practical or iterative working style, reflect that in Preferences instead of leaving it empty.
 - Keep each section concise...
 
-Write in clear English.
+Write in the same language as the user's input.
 
 Output exactly this format and nothing else:
 
