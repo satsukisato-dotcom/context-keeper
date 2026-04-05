@@ -311,6 +311,45 @@
       border-radius: 4px;
       margin-bottom: 10px;
     }
+    .character-wrap {
+  grid-column: 1 / -1;
+  max-width: 720px;
+  margin: 0 auto 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.character-label {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+
+.character-help {
+  font-size: 0.82rem;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.character-select {
+  width: 100%;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.character-select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(47,149,179,0.12);
+}
   </style>
 </head>
 <body>
@@ -331,11 +370,16 @@
 
   <main>
 
-    <select id="character">
-      <option value="mofu">もふもふ</option>
-      <option value="doku">毒舌</option>
-      <option value="ama">甘やかし</option>
-    </select>
+   <div class="character-wrap">
+  <label for="character" class="character-label">相談相手を選んでください</label>
+  <p class="character-help">同じ入力でも、返答の雰囲気が変わります。</p>
+
+  <select id="character" class="character-select">
+    <option value="mofu">もふもふさんに整理してもらう</option>
+    <option value="doku">毒舌モードで見てもらう</option>
+    <option value="ama">甘やかしモードで受け取る</option>
+  </select>
+</div>
 
     <div class="panel">
       <div class="panel-header">
