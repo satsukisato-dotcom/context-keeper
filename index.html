@@ -350,6 +350,74 @@
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(47,149,179,0.12);
 }
+
+.control-wrap {
+  grid-column: 1 / -1;
+  max-width: 720px;
+  width: 100%;
+  margin: 0 auto 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.lang-wrap,
+.character-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.control-label,
+.character-label {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+
+.character-help {
+  font-size: 0.82rem;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.radio-group {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.radio-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.radio-option input[type="radio"] {
+  accent-color: var(--accent);
+}
+
+.character-select {
+  width: 100%;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.character-select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(47,149,179,0.12);
+}
   </style>
 </head>
 <body>
@@ -370,15 +438,31 @@
 
   <main>
 
-   <div class="character-wrap">
-  <label for="character" class="character-label">相談相手を選んでください</label>
-  <p class="character-help">同じ入力でも、返答の雰囲気が変わります。</p>
+  <div class="control-wrap">
+  <div class="lang-wrap">
+    <div class="control-label">Output language</div>
+    <div class="radio-group">
+      <label class="radio-option">
+        <input type="radio" name="outputLanguage" value="ja" checked>
+        <span>日本語</span>
+      </label>
+      <label class="radio-option">
+        <input type="radio" name="outputLanguage" value="en">
+        <span>English</span>
+      </label>
+    </div>
+  </div>
 
-  <select id="character" class="character-select">
-    <option value="mofu">もふもふさんに整理してもらう</option>
-    <option value="doku">毒舌モードで見てもらう</option>
-    <option value="ama">甘やかしモードで受け取る</option>
-  </select>
+  <div class="character-wrap">
+    <label for="character" class="character-label" id="characterLabel">相談相手を選んでください</label>
+    <p class="character-help" id="characterHelp">同じ入力でも、返答の雰囲気が変わります。</p>
+
+    <select id="character" class="character-select">
+      <option value="mofu">もふもふさんに整理してもらう</option>
+      <option value="doku">毒舌モードで見てもらう</option>
+      <option value="ama">甘やかしモードで受け取る</option>
+    </select>
+  </div>
 </div>
 
     <div class="panel">
@@ -432,6 +516,10 @@
   const charCount = document.getElementById('charCount');
   const outputStatus = document.getElementById('outputStatus');
   const btnLabel = document.getElementById('btnLabel');
+  const languageRadios = document.querySelectorAll('input[name="outputLanguage"]');
+  const characterSelect = document.getElementById('character');
+  const characterLabel = document.getElementById('characterLabel');
+  const characterHelp = document.getElementById('characterHelp');
 
   const PROXY_URL = '/summarize';
 
@@ -443,55 +531,50 @@
     generateBtn.disabled = len < 20;
   });
 
-  async function handleGenerate() {
-    const input = inputEl.value.trim();
-    if (!input) return;
+ async function handleGenerate() {
+  const input = inputEl.value.trim();
+  if (!input) return;
 
-    setLoading(true);
+  setLoading(true);
 
-    try {
-  const character = document.getElementById('character').value;
+  try {
+    const character = document.getElementById('character').value;
+    const outputLanguage = document.querySelector('input[name="outputLanguage"]:checked').value;
 
-  const res = await fetch(PROXY_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      conversation: input,
-      character: character
-    })
-  });
+    const res = await fetch(PROXY_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        conversation: input,
+        character: character,
+        outputLanguage: outputLanguage
+      })
+    });
 
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || `Server error ${res.status}`);
-  }
-
-  const data = await res.json();
-  const blocks = parseBlocks(data.result);
-  generatedText = blocks.map(b => `[${b.label}]\n${b.content}`).join('\n\n');
-
-  renderOutput(blocks);
-  copyBtn.disabled = false;
-  outputStatus.textContent = 'ready to copy';
-} catch (err) {
-  outputEl.innerHTML = `<div style="padding:18px; color:var(--danger); font-family:var(--font-mono); font-size:0.8rem;">Error: ${escapeHtml(err.message)}</div>`;
-  outputStatus.textContent = 'error';
-}
-
-setLoading(false);
-      const blocks = parseBlocks(data.result);
-      generatedText = blocks.map(b => `[${b.label}]\n${b.content}`).join('\n\n');
-
-      renderOutput(blocks);
-      copyBtn.disabled = false;
-      outputStatus.textContent = 'ready to copy';
-    } catch (err) {
-      outputEl.innerHTML = `<div style="padding:18px; color:var(--danger); font-family:var(--font-mono); font-size:0.8rem;">Error: ${escapeHtml(err.message)}</div>`;
-      outputStatus.textContent = 'error';
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || `Server error ${res.status}`);
     }
 
-    setLoading(false);
+    const data = await res.json();
+    const blocks = parseBlocks(data.result);
+
+    generatedText = blocks.map(b => `[${b.label}]\n${b.content}`).join('\n\n');
+
+    renderOutput(blocks);
+    copyBtn.disabled = false;
+    outputStatus.textContent = 'ready to copy';
+
+  } catch (err) {
+    outputEl.innerHTML = `
+      <div style="padding:18px; color:var(--danger); font-family:var(--font-mono); font-size:0.8rem;">
+        Error: ${escapeHtml(err.message)}
+      </div>`;
+    outputStatus.textContent = 'error';
   }
+
+  setLoading(false);
+}
 
   function parseBlocks(text) {
     const sections = [
@@ -638,6 +721,36 @@ setLoading(false);
     return "You are a warm, supportive assistant. You praise and encourage the user.";
   }
 }
+
+function updateCharacterUI() {
+  const selectedLanguage = document.querySelector('input[name="outputLanguage"]:checked').value;
+
+  if (selectedLanguage === 'ja') {
+    characterLabel.textContent = '相談相手を選んでください';
+    characterHelp.textContent = '同じ入力でも、返答の雰囲気が変わります。';
+
+    characterSelect.innerHTML = `
+      <option value="mofu">もふもふさんに整理してもらう</option>
+      <option value="doku">毒舌モードで見てもらう</option>
+      <option value="ama">甘やかしモードで受け取る</option>
+    `;
+  } else {
+    characterLabel.textContent = 'Choose your assistant';
+    characterHelp.textContent = 'The structure stays the same. Only the tone changes.';
+
+    characterSelect.innerHTML = `
+      <option value="mofu">Mofumofu (calm & structured)</option>
+      <option value="doku">Blunt mode (direct & critical)</option>
+      <option value="ama">Gentle mode (kind & supportive)</option>
+    `;
+  }
+}
+
+languageRadios.forEach(radio => {
+  radio.addEventListener('change', updateCharacterUI);
+});
+
+updateCharacterUI();
 </script>
 
 </body>
