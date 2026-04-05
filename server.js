@@ -43,7 +43,9 @@ One sentence. State the concrete outcome the user is trying to achieve.
 2–4 sentences. Include the relevant working background, current setup, tools, environment, constraints, decisions already made, or errors already encountered.
 
 [Preferences]
-1–3 sentences. Include explicit preferences and strongly implied working style. If truly unavailable, write: Not clearly specified.
+1–3 sentences. Include explicit preferences and strongly implied working style.
+If the input is Japanese and preferences are unclear, write: 明確に指定されていない。
+If the input is English and preferences are unclear, write: Not clearly specified.
 
 [Current Topic]
 1–2 sentences. State what the user was actively working on at the end, and the most immediate next step.
