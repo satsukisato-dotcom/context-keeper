@@ -10,7 +10,7 @@ const app  = express();
 const PORT = process.env.PORT || 3000;
 
 const client = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY, // loaded from .env
+  apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
 const SYSTEM_PROMPT = `You are extracting continuation-ready context from a real working conversation.
@@ -29,7 +29,10 @@ Rules:
 - When the conversation suggests a practical or iterative working style, reflect that in Preferences instead of leaving it empty.
 - Keep each section concise...
 
-Write in the same language as the user's input.
+IMPORTANT:
+You MUST write the entire output in the same language as the user's input.
+If the input is Japanese, the entire output MUST be in Japanese.
+If the input is English, the entire output MUST be in English.
 
 Output exactly this format and nothing else:
 
@@ -50,7 +53,7 @@ Quality bar:
 - Every section must contain information that reduces re-explaining.
 - Avoid generic safety language when a more specific phrasing is possible.`;
 
-app.use(cors({ origin: '*' })); // tighten this in production
+app.use(cors({ origin: '*' }));
 app.use(express.json());
 
 app.post('/summarize', async (req, res) => {
@@ -65,7 +68,13 @@ app.post('/summarize', async (req, res) => {
       model:      'claude-sonnet-4-20250514',
       max_tokens: 1000,
       system:     SYSTEM_PROMPT,
-      messages:   [{ role: 'user', content: `Here is the conversation to summarize:\n\n${conversation}` }],
+      messages: [{
+        role: 'user',
+        content: `Summarize the following conversation.
+Write the output in the same language as the input.
+
+${conversation}`
+      }],
     });
 
     const result = message.content
@@ -82,7 +91,7 @@ app.post('/summarize', async (req, res) => {
   }
 });
 
-// 静的ファイル配信（←これ追加）
+// 静的ファイル配信
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -94,6 +103,7 @@ app.use(express.static(__dirname));
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
+
 // Health check
 app.get('/health', (_req, res) => res.json({ status: 'ok' }));
 
